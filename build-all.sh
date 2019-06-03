@@ -8,13 +8,13 @@ function build {
     mkdir ${WORK_DIR}
     curl -L ${BASE_URL}/base.txz | tar vxf - -C ${WORK_DIR}
     curl -L ${BASE_URL}/kernel.txz | tar vxf - -C ${WORK_DIR}
-    curl -L -o ${WORK_DIR}/tmp/freebsd.tar.gz https://github.com/goneri/cloud-init/archive/freebsd.tar.gz
+    curl -L -o ${WORK_DIR}/tmp/netbsd.tar.gz https://github.com/goneri/cloud-init/archive/netbsd.tar.gz
     echo "
 export ASSUME_ALWAYS_YES=YES
 cd /tmp
 pkg install -y ca_root_nss
-tar xf freebsd.tar.gz
-cd cloud-init-freebsd
+tar xf netbsd.tar.gz
+cd cloud-init-netbsd
 mkdir -p /usr/local/etc/rc.d
 ./tools/build-on-freebsd
 " > ${WORK_DIR}/tmp/cloudify.sh
