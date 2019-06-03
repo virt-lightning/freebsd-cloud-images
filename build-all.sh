@@ -17,6 +17,7 @@ tar xf netbsd.tar.gz
 cd cloud-init-netbsd
 mkdir -p /usr/local/etc/rc.d
 ./tools/build-on-freebsd
+pw lock root
 " > ${WORK_DIR}/tmp/cloudify.sh
 chmod +x ${WORK_DIR}/tmp/cloudify.sh
 cp /etc/resolv.conf ${WORK_DIR}/etc/resolv.conf
