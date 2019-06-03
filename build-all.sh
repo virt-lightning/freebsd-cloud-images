@@ -1,6 +1,11 @@
 #!/bin/bash
+version=$1
+if [ -z $version ]; then
+    echo "Usage $0 version"
+    exit 1
+fi
 set -eux
-pkg install -y curl qemu-utils
+
 function build {
     VERSION=$1
     BASE_URL="ftp://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/amd64/${VERSION}-RELEASE"
@@ -47,6 +52,5 @@ echo '/dev/gpt/rootfs   /       ufs     rw      1       1
     #rm -r ${WORK_DIR} freebsd-${VERSION}.raw
 }
 
-build 12.0
-build 11.2
-build 10.4
+#pkg install -y curl qemu-utils
+build $version
