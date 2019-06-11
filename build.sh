@@ -20,6 +20,7 @@ cd /tmp
 pkg install -y ca_root_nss
 tar xf netbsd.tar.gz
 cd cloud-init-netbsd
+touch /etc/rc.conf
 mkdir -p /usr/local/etc/rc.d
 ./tools/build-on-freebsd
 #pw mod user root -w no
