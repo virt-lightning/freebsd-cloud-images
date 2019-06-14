@@ -22,6 +22,7 @@ tar xf netbsd.tar.gz
 cd cloud-init-netbsd
 touch /etc/rc.conf
 mkdir -p /usr/local/etc/rc.d
+pkg install -y python3
 ./tools/build-on-freebsd
 #pw mod user root -w no
 " > ${WORK_DIR}/tmp/cloudify.sh
