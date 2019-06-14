@@ -46,11 +46,9 @@ echo '/dev/gpt/rootfs   /       ufs     rw      1       1
     echo 'sshd_enable="YES"' >> ${WORK_DIR}/etc/rc.conf
     echo 'sendmail_enable="NONE"' >> ${WORK_DIR}/etc/rc.conf
     makefs -B little -o label=freebsd_root ./ufs ${WORK_DIR}
-    mkimg -s gpt -b ${WORK_DIR}/boot/pmbr -p efi:=${WORK_DIR}/boot/boot1.efifat -p freebsd-boot:=${WORK_DIR}/boot/gptboot -p freebsd-swap/swapfs::1G -p freebsd-ufs/rootfs:=./ufs -o freebsd-${VERSION}.raw
-    #qemu-img convert -c -f raw -O qcow2 freebsd-${VERSION}.raw freebsd-${VERSION}.qcow2
+    mkimg -s gpt -b ${WORK_DIR}/boot/pmbr -p efi:=${WORK_DIR}/boot/boot1.efifat -p freebsd-boot:=${WORK_DIR}/boot/gptboot -p freebsd-swap/swapfs::1G -p freebsd-ufs/rootfs:=./ufs -o final.raw
     chflags -R noschg ${WORK_DIR}
     rm -r ${WORK_DIR}
-    #rm -r ${WORK_DIR} freebsd-${VERSION}.raw
 }
 
 #pkg install -y curl qemu-utils
