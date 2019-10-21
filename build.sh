@@ -8,7 +8,7 @@ set -eux
 
 function build {
     VERSION=$1
-    BASE_URL="ftp://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/amd64/${VERSION}-RELEASE"
+    BASE_URL="ftp://ftp.freebsd.org/pub/FreeBSD/releases/amd64/${VERSION}-RELEASE"
     WORK_DIR="/root/work_dir_${VERSION}"
     mkdir ${WORK_DIR}
     curl -L ${BASE_URL}/base.txz | tar vxf - -C ${WORK_DIR}
