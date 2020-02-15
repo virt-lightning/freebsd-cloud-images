@@ -1,8 +1,15 @@
 #!/bin/bash
 version=$1
-if [ -z $version ]; then
-    echo "Usage $0 version"
-    exit 1
+repo=$2
+ref=$3
+if [ -z "$version" ]; then
+    version="12.1"
+fi
+if [ -z "${repo}" ]; then
+    repo="canonical/cloud-init"
+fi
+if [ -z "${ref}" ]; then
+    ref="master"
 fi
 set -eux
 
@@ -16,13 +23,13 @@ function build {
     mkdir ${WORK_DIR}
     curl -L ${BASE_URL}/base.txz | tar vxf - -C ${WORK_DIR}
     curl -L ${BASE_URL}/kernel.txz | tar vxf - -C ${WORK_DIR}
-    curl -L -o ${WORK_DIR}/tmp/netbsd.tar.gz https://github.com/goneri/cloud-init/archive/netbsd.tar.gz
+    curl -L -o ${WORK_DIR}/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
     echo "
 export ASSUME_ALWAYS_YES=YES
 cd /tmp
 pkg install -y ca_root_nss
-tar xf netbsd.tar.gz
-cd cloud-init-netbsd
+tar xf cloud-init.tar.gz
+cd cloud-init-*
 touch /etc/rc.conf
 mkdir -p /usr/local/etc/rc.d
 pkg install -y python3
