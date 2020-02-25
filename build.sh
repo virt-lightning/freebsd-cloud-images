@@ -2,14 +2,15 @@
 version=$1
 repo=$2
 ref=$3
+debug=$4
 if [ -z "$version" ]; then
     version="12.1"
 fi
 if [ -z "${repo}" ]; then
     repo="canonical/cloud-init"
 fi
-if [ -z "${ref}" ]; then
-    ref="master"
+if [ -z "${debug}" ]; then
+    debug=""
 fi
 set -eux
 
@@ -35,7 +36,7 @@ mkdir -p /usr/local/etc/rc.d
 pkg install -y python3
 ./tools/build-on-freebsd
 " > ${WORK_DIR}/tmp/cloudify.sh
-test -z "$DEBUG" && echo "pw mod user root -w no" >> ${WORK_DIR}/tmp/cloudify.sh  # Lock root account
+test -z "$debug" && echo "pw mod user root -w no" >> ${WORK_DIR}/tmp/cloudify.sh  # Lock root account
 
 chmod +x ${WORK_DIR}/tmp/cloudify.sh
 cp /etc/resolv.conf ${WORK_DIR}/etc/resolv.conf
