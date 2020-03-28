@@ -36,7 +36,7 @@ mkdir -p /usr/local/etc/rc.d
 pkg install -y python3
 ./tools/build-on-freebsd
 " > ${WORK_DIR}/tmp/cloudify.sh
-test -z "$debug" && echo "pw mod user root -w no" >> ${WORK_DIR}/tmp/cloudify.sh  # Lock root account
+test -z "$debug" || echo "pw mod user root -w no" >> ${WORK_DIR}/tmp/cloudify.sh  # Lock root account
 
 chmod +x ${WORK_DIR}/tmp/cloudify.sh
 cp /etc/resolv.conf ${WORK_DIR}/etc/resolv.conf
