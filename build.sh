@@ -39,6 +39,7 @@ pkg install -y python3
 test -z "$debug" || echo "pw mod user root -w no" >> ${WORK_DIR}/tmp/cloudify.sh  # Lock root account
 
 chmod +x ${WORK_DIR}/tmp/cloudify.sh
+
 cp /etc/resolv.conf ${WORK_DIR}/etc/resolv.conf
 mount -t devfs devfs ${WORK_DIR}/dev
 chroot ${WORK_DIR} /tmp/cloudify.sh
@@ -55,7 +56,7 @@ echo '/dev/gpt/rootfs   /       ufs     rw      1       1
     echo 'autoboot_delay="1"' >> ${WORK_DIR}/boot/loader.conf
     echo 'console="comconsole,vidconsole"' >> ${WORK_DIR}/boot/loader.conf
     echo '-P' >> ${WORK_DIR}/boot.config
-
+    rm -rf ${WORK_DIR}/tmp/*
     echo 'sshd_enable="YES"' >> ${WORK_DIR}/etc/rc.conf
     echo 'sendmail_enable="NONE"' >> ${WORK_DIR}/etc/rc.conf
     makefs -B little -o label=freebsd_root ./ufs ${WORK_DIR}
