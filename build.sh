@@ -12,6 +12,9 @@ fi
 if [ -z "${debug}" ]; then
     debug=""
 fi
+if [ -z "${ref}" ]; then
+    ref="master"
+fi
 set -eux
 
 function build {
