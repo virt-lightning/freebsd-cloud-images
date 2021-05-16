@@ -25,6 +25,23 @@ function build {
     fi
     WORK_DIR="/root/work_dir_${VERSION}"
     mkdir ${WORK_DIR}
+
+    qemu-img create final.raw 3G
+    md_dev=$(mdconfig -a -t vnode -f final.raw)
+    gpart create -s gpt ${md_dev}
+    gpart add -t freebsd-boot -s 1024 ${md_dev}
+    gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 1 ${md_dev}
+    gpart add -t efi -s 40M ${md_dev}
+    gpart add -s 1G -l swapfs -t freebsd-swap ${md_dev}
+    gpart add -t freebsd-ufs -l rootfs ${md_dev}
+    newfs_msdos -F 32 -c 1 /dev/${md_dev}p2
+    mount -t msdosfs /dev/${md_dev}p2 /mnt
+    mkdir -p /mnt/EFI/BOOT
+    cp /boot/loader.efi /mnt/EFI/BOOT/BOOTX64.efi
+    umount /mnt
+    newfs -U -L FreeBSD /dev/${md_dev}p4
+    mount /dev/${md_dev}p4 ${WORK_DIR}
+
     curl -L ${BASE_URL}/base.txz | tar vxf - -C ${WORK_DIR}
     curl -L ${BASE_URL}/kernel.txz | tar vxf - -C ${WORK_DIR}
     curl -L -o ${WORK_DIR}/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
@@ -62,11 +79,9 @@ echo '/dev/gpt/rootfs   /       ufs     rw      1       1
     rm -rf ${WORK_DIR}/tmp/*
     echo 'sshd_enable="YES"' >> ${WORK_DIR}/etc/rc.conf
     echo 'sendmail_enable="NONE"' >> ${WORK_DIR}/etc/rc.conf
-    makefs -B little -o label=freebsd_root ./ufs ${WORK_DIR}
-    mkimg -s gpt -b ${WORK_DIR}/boot/pmbr -p efi:=${WORK_DIR}/boot/boot1.efifat -p freebsd-boot:=${WORK_DIR}/boot/gptboot -p freebsd-swap/swapfs::1G -p freebsd-ufs/rootfs:=./ufs -o final.raw
-    chflags -R noschg ${WORK_DIR}
-    rm -r ${WORK_DIR}
+
+    umount /dev/${md_dev}p4
+    mdconfig -du ${md_dev}
 }
 
-#pkg install -y curl qemu-utils
 build $version
