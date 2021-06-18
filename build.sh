@@ -1,21 +1,12 @@
 #!/bin/bash
-version=$1
-repo=$2
-ref=$3
+version="${1:-13.0}"
+repo="${2:-canonical/cloud-init}"
+ref="${3:-main}"
 debug=$4
-if [ -z "$version" ]; then
-    version="12.1"
-fi
-if [ -z "${repo}" ]; then
-    repo="canonical/cloud-init"
-fi
-if [ -z "${debug}" ]; then
-    debug=""
-fi
-if [ -z "${ref}" ]; then
-    ref="master"
-fi
+install_media="${install_media:-http}"
+
 set -eux
+root_fs="${root_fs:-zfs}"  # ufs or zfs
 
 function build {
     VERSION=$1
@@ -23,28 +14,45 @@ function build {
     if ! curl --fail --silent -L $BASE_URL; then
         BASE_URL="http://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/amd64/${VERSION}-RELEASE"
     fi
-    WORK_DIR="/root/work_dir_${VERSION}"
-    mkdir ${WORK_DIR}
+
+
+    if [ ${root_fs} = "zfs" ]; then
+        gptboot=/boot/gptzfsboot
+    else
+        gptboot=/boot/gptboot
+    fi
 
     qemu-img create final.raw 3G
     md_dev=$(mdconfig -a -t vnode -f final.raw)
     gpart create -s gpt ${md_dev}
     gpart add -t freebsd-boot -s 1024 ${md_dev}
-    gpart bootcode -b /boot/pmbr -p /boot/gptboot -i 1 ${md_dev}
+    gpart bootcode -b /boot/pmbr -p ${gptboot} -i 1 ${md_dev}
     gpart add -t efi -s 40M ${md_dev}
     gpart add -s 1G -l swapfs -t freebsd-swap ${md_dev}
-    gpart add -t freebsd-ufs -l rootfs ${md_dev}
+    gpart add -t freebsd-${root_fs} -l rootfs ${md_dev}
     newfs_msdos -F 32 -c 1 /dev/${md_dev}p2
     mount -t msdosfs /dev/${md_dev}p2 /mnt
     mkdir -p /mnt/EFI/BOOT
     cp /boot/loader.efi /mnt/EFI/BOOT/BOOTX64.efi
     umount /mnt
-    newfs -U -L FreeBSD /dev/${md_dev}p4
-    mount /dev/${md_dev}p4 ${WORK_DIR}
 
-    curl -L ${BASE_URL}/base.txz | tar vxf - -C ${WORK_DIR}
-    curl -L ${BASE_URL}/kernel.txz | tar vxf - -C ${WORK_DIR}
-    curl -L -o ${WORK_DIR}/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
+
+    if [ ${root_fs} = "zfs" ]; then
+        zpool create -o altroot=/mnt zroot ${md_dev}p4
+        zfs set compress=on  zroot
+        zfs create -o mountpoint=none                                  zroot/ROOT
+        zfs create -o mountpoint=/ -o canmount=noauto                  zroot/ROOT/default
+        mount -t zfs zroot/ROOT/default /mnt
+        zpool set bootfs=zroot/ROOT/default zroot
+    else
+        newfs -U -L FreeBSD /dev/${md_dev}p4
+        mount /dev/${md_dev}p4 /mnt
+    fi
+
+
+    curl -L ${BASE_URL}/base.txz | tar vxf - -C /mnt
+    curl -L ${BASE_URL}/kernel.txz | tar vxf - -C /mnt
+    curl -L -o /mnt/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
     echo "
 export ASSUME_ALWAYS_YES=YES
 cd /tmp
@@ -55,37 +63,54 @@ touch /etc/rc.conf
 mkdir -p /usr/local/etc/rc.d
 pkg install -y python3
 ./tools/build-on-freebsd
-" > ${WORK_DIR}/tmp/cloudify.sh
+" > /mnt/tmp/cloudify.sh
 
-if [ -z "${debug}" ]; then # Lock root account
-    echo "pw mod user root -w no" >> ${WORK_DIR}/tmp/cloudify.sh
-else
-    echo 'echo "!234AaAa56" | pw usermod -n root -h 0' >> ${WORK_DIR}/tmp/cloudify.sh
-fi
+    if [ -z "${debug}" ]; then # Lock root account
+        echo "pw mod user root -w no" >> /mnt/tmp/cloudify.sh
+    else
+        echo 'echo "!234AaAa56" | pw usermod -n root -h 0' >> /mnt/tmp/cloudify.sh
+    fi
 
-chmod +x ${WORK_DIR}/tmp/cloudify.sh
+    chmod +x /mnt/tmp/cloudify.sh
 
-cp /etc/resolv.conf ${WORK_DIR}/etc/resolv.conf
-mount -t devfs devfs ${WORK_DIR}/dev
-chroot ${WORK_DIR} /tmp/cloudify.sh
-umount ${WORK_DIR}/dev
-echo '' > ${WORK_DIR}/etc/resolv.conf
-echo '/dev/gpt/rootfs   /       ufs     rw      1       1
-/dev/gpt/swapfs  none    swap    sw      0       0
-' > ${WORK_DIR}/etc/fstab
+    cp /etc/resolv.conf /mnt/etc/resolv.conf
+    mount -t devfs devfs /mnt/dev
+    chroot /mnt /tmp/cloudify.sh
+    umount /mnt/dev
+    rm /mnt/tmp/cloudify.sh
+    echo '' > /mnt/etc/resolv.conf
+    if [ ${root_fs} = "ufs" ]; then
+        echo '/dev/gpt/rootfs   /       ufs     rw      1       1' >>  /mnt/etc/fstab
+    fi
+    echo '/dev/gpt/swapfs  none    swap    sw      0       0' >> /mnt/etc/fstab
 
 
-    echo 'boot_multicons="YES"' >> ${WORK_DIR}/boot/loader.conf
-    echo 'boot_serial="YES"' >> ${WORK_DIR}/boot/loader.conf
-    echo 'comconsole_speed="115200"' >> ${WORK_DIR}/boot/loader.conf
-    echo 'autoboot_delay="1"' >> ${WORK_DIR}/boot/loader.conf
-    echo 'console="comconsole,vidconsole"' >> ${WORK_DIR}/boot/loader.conf
-    echo '-P' >> ${WORK_DIR}/boot.config
-    rm -rf ${WORK_DIR}/tmp/*
-    echo 'sshd_enable="YES"' >> ${WORK_DIR}/etc/rc.conf
-    echo 'sendmail_enable="NONE"' >> ${WORK_DIR}/etc/rc.conf
+    echo 'boot_multicons="YES"' >> /mnt/boot/loader.conf
+    echo 'boot_serial="YES"' >> /mnt/boot/loader.conf
+    echo 'comconsole_speed="115200"' >> /mnt/boot/loader.conf
+    echo 'autoboot_delay="1"' >> /mnt/boot/loader.conf
+    echo 'console="comconsole,efi"' >> /mnt/boot/loader.conf
+    echo '-P' >> /mnt/boot.config
+    rm -rf /mnt/tmp/*
+    echo 'sshd_enable="YES"' >> /mnt/etc/rc.conf
+    echo 'sendmail_enable="NONE"' >> /mnt/etc/rc.conf
 
-    umount /dev/${md_dev}p4
+    if [ ${root_fs} = "zfs" ]; then
+        echo 'zfs_load="YES"' >> /mnt/boot/loader.conf
+        echo 'vfs.root.mountfrom="zfs:zroot/ROOT/default"' >> /mnt/boot/loader.conf
+        echo 'zfs_enable="YES"' >> /mnt/etc/rc.conf
+    fi
+
+    if [ ${root_fs} = "zfs" ]; then
+        ls /mnt
+        ls /mnt/sbin
+        ls /mnt/sbin/init
+        zfs umount /mnt
+        zfs umount /mnt/zroot
+        zpool export zroot
+    else
+        umount /dev/${md_dev}p4
+    fi
     mdconfig -du ${md_dev}
 }
 
