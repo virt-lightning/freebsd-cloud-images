@@ -99,6 +99,14 @@ pkg install -y python3
         echo 'zfs_load="YES"' >> /mnt/boot/loader.conf
         echo 'vfs.root.mountfrom="zfs:zroot/ROOT/default"' >> /mnt/boot/loader.conf
         echo 'zfs_enable="YES"' >> /mnt/etc/rc.conf
+
+
+        echo 'growpart:
+   mode: auto
+   devices:
+      - /dev/vtbd0p4
+      - /
+' >> /mnt/etc/cloud/cloud.cfg
     fi
 
     if [ ${root_fs} = "zfs" ]; then
