@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 version="${1:-13.0}"
 repo="${2:-canonical/cloud-init}"
 ref="${3:-main}"
@@ -59,9 +59,12 @@ cd /tmp
 pkg install -y ca_root_nss
 tar xf cloud-init.tar.gz
 cd cloud-init-*
-touch /etc/rc.conf
+tee /etc/rc.conf <<EOF
+qemu_guest_agent_enable=\"YES\"
+qemu_guest_agent_flags=\"-d -v -l /var/log/qemu-ga.log\"
+EOF
 mkdir -p /usr/local/etc/rc.d
-pkg install -y python3
+pkg install -y python3 qemu-guest-agent
 ./tools/build-on-freebsd
 " > /mnt/tmp/cloudify.sh
 
