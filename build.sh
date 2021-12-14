@@ -59,11 +59,6 @@ cd /tmp
 pkg install -y ca_root_nss
 tar xf cloud-init.tar.gz
 cd cloud-init-*
-tee /etc/rc.conf <<EOF
-qemu_guest_agent_enable=\"YES\"
-qemu_guest_agent_flags=\"-d -v -l /var/log/qemu-ga.log\"
-EOF
-mkdir -p /usr/local/etc/rc.d
 pkg install -y python3 qemu-guest-agent
 ./tools/build-on-freebsd
 " > /mnt/tmp/cloudify.sh
@@ -87,7 +82,6 @@ pkg install -y python3 qemu-guest-agent
     fi
     echo '/dev/gpt/swapfs  none    swap    sw      0       0' >> /mnt/etc/fstab
 
-
     echo 'boot_multicons="YES"' >> /mnt/boot/loader.conf
     echo 'boot_serial="YES"' >> /mnt/boot/loader.conf
     echo 'comconsole_speed="115200"' >> /mnt/boot/loader.conf
@@ -97,6 +91,9 @@ pkg install -y python3 qemu-guest-agent
     rm -rf /mnt/tmp/*
     echo 'sshd_enable="YES"' >> /mnt/etc/rc.conf
     echo 'sendmail_enable="NONE"' >> /mnt/etc/rc.conf
+
+    echo 'qemu_guest_agent_enable="YES"' >> /mnt/etc/rc.conf
+    echo 'qemu_guest_agent_flags="-d -v -l /var/log/qemu-ga.log"' >> /etc/rc.conf
 
     if [ ${root_fs} = "zfs" ]; then
         echo 'zfs_load="YES"' >> /mnt/boot/loader.conf
