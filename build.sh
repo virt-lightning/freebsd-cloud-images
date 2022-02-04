@@ -22,7 +22,7 @@ function build {
         gptboot=/boot/gptboot
     fi
 
-    qemu-img create final.raw 3G
+    qemu-img create final.raw 8G
     md_dev=$(mdconfig -a -t vnode -f final.raw)
     gpart create -s gpt ${md_dev}
     gpart add -t freebsd-boot -s 1024 ${md_dev}
@@ -49,9 +49,10 @@ function build {
         mount /dev/${md_dev}p4 /mnt
     fi
 
-
     curl -L ${BASE_URL}/base.txz | tar vxf - -C /mnt
     curl -L ${BASE_URL}/kernel.txz | tar vxf - -C /mnt
+    curl -L ${BASE_URL}/src.txz | tar vxf - -C /mnt
+
     curl -L -o /mnt/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
     echo "
 export ASSUME_ALWAYS_YES=YES
