@@ -4,6 +4,14 @@ repo="${2:-canonical/cloud-init}"
 ref="${3:-main}"
 debug=$4
 install_media="${install_media:-http}"
+requisite_pkgs="curl"
+
+pkg info --quiet ${requisite_pkgs}
+if [ $? != 0 ]; then
+    echo "Requisite packages are missing, install following packages:" >&2
+    echo "${requisite_pkgs}" | sed -e 's|^|\t|' -e 's| |\n\t|g' >&2
+    exit 1
+fi
 
 set -eux
 root_fs="${root_fs:-zfs}"  # ufs or zfs
