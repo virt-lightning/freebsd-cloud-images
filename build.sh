@@ -114,7 +114,8 @@ touch /etc/rc.conf
         echo 'vfs.root.mountfrom="zfs:zroot/ROOT/default"' >> /mnt/boot/loader.conf
         echo 'zfs_enable="YES"' >> /mnt/etc/rc.conf
 
-
+        # make sure the directory exists before creating cloud.cfg
+        mkdir -p /mnt/etc/cloud
         echo 'growpart:
    mode: auto
    devices:
