@@ -3,7 +3,7 @@
 ## Usage
 
 - Install FreeBSD 13
-- Install dependencies: `sudo pkg install -y qemu git`
+- Install dependencies: `sudo pkg install -y git bash curl`
 - Clone the git repository
 - Run: `build.sh`
 - Done
