@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-version="${1:-13.0}"
+version="${1:-13.2}"
 repo="${2:-canonical/cloud-init}"
 ref="${3:-main}"
 debug=$4
 install_media="${install_media:-http}"
 
 set -eux
-root_fs="${root_fs:-zfs}"  # ufs or zfs
+root_fs="${root_fs:-ufs}"  # ufs or zfs
 
 function build {
     VERSION=$1
@@ -54,6 +54,9 @@ function build {
     curl -L ${BASE_URL}/kernel.txz | tar vxf - -C /mnt
     curl -L -o /mnt/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
     echo "
+PAGER=""
+freebsd-update fetch --not-running-from-cron
+freebsd-update install
 export ASSUME_ALWAYS_YES=YES
 cd /tmp
 pkg install -y ca_root_nss
