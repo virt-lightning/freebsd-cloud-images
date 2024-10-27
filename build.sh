@@ -54,6 +54,7 @@ function build {
         zpool set bootfs=zroot/ROOT/default zroot
     else
         newfs -U -L FreeBSD /dev/${md_dev}p4
+        tunefs -p /dev/${md_dev}p4
         mount /dev/${md_dev}p4 /mnt
     fi
 
