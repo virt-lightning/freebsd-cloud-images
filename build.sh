@@ -30,7 +30,7 @@ function build {
         gptboot=/boot/gptboot
     fi
 
-    dd if=/dev/zero of=final.raw bs=1048576 count=3000
+    dd if=/dev/zero of=final.raw bs=1148576 count=3000
     md_dev=$(mdconfig -a -t vnode -f final.raw)
     gpart create -s gpt ${md_dev}
     gpart add -t freebsd-boot -s 1024 ${md_dev}
