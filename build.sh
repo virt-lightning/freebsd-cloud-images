@@ -64,8 +64,8 @@ function build {
     curl -L -o /mnt/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
     echo "
 PAGER=""
-freebsd-update fetch --not-running-from-cron
-freebsd-update install
+freebsd-update --currently-running ${version}-RELEASE fetch --not-running-from-cron
+freebsd-update --currently-running ${version}-RELEASE install
 export ASSUME_ALWAYS_YES=YES
 cd /tmp
 pkg install -y ca_root_nss
