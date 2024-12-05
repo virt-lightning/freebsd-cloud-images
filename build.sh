@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-version="${1:-13.2}"
+version="${1:-14.2}"
 repo="${2:-canonical/cloud-init}"
 ref="${3:-main}"
 debug=$4
@@ -14,7 +14,7 @@ if [ $? != 0 ]; then
 fi
 
 set -eux
-root_fs="${root_fs:-zfs}"  # ufs or zfs
+root_fs="${root_fs:-ufs}"  # ufs or zfs
 
 function build {
     VERSION=$1
@@ -35,7 +35,7 @@ function build {
     gpart create -s gpt ${md_dev}
     gpart add -t freebsd-boot -s 1024 ${md_dev}
     gpart bootcode -b /boot/pmbr -p ${gptboot} -i 1 ${md_dev}
-    gpart add -t efi -s 40M ${md_dev}
+    gpart add -t efi -s 128M ${md_dev}
     gpart add -s 1G -l swapfs -t freebsd-swap ${md_dev}
     gpart add -t freebsd-${root_fs} -l rootfs ${md_dev}
     newfs_msdos -F 32 -c 1 /dev/${md_dev}p2
@@ -98,10 +98,12 @@ touch /etc/rc.conf
     echo 'boot_multicons="YES"' >> /mnt/boot/loader.conf
     echo 'boot_serial="YES"' >> /mnt/boot/loader.conf
     echo 'comconsole_speed="115200"' >> /mnt/boot/loader.conf
-    echo 'autoboot_delay="1"' >> /mnt/boot/loader.conf
+    echo 'autoboot_delay="-1"' >> /mnt/boot/loader.conf
     echo 'console="comconsole,efi"' >> /mnt/boot/loader.conf
+    echo 'beastie_disable="YES"' >>/mnt/boot/loader.conf
     echo '-P' >> /mnt/boot.config
     rm -rf /mnt/tmp/*
+    echo 'clear_tmp_enable="YES"' >>/mnt/etc/rc.conf
     echo 'sshd_enable="YES"' >> /mnt/etc/rc.conf
     echo 'sendmail_enable="NONE"' >> /mnt/etc/rc.conf
 
