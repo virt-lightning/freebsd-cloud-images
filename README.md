@@ -3,7 +3,7 @@
 ## Usage
 
 - Install FreeBSD 13
-- Install dependencies: `sudo pkg install -y git bash curl`
+- Install dependencies: `sudo pkg install -y git-tiny`
 - Clone the git repository
 - Run: `build.sh`
 - Done

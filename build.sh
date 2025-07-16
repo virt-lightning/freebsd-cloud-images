@@ -1,25 +1,19 @@
-#!/usr/bin/env bash
+#!/bin/sh
+# Borrowed from https://github.com/virt-lightning/freebsd-cloud-images/blob/master/build.sh
+# and modified.
 version="${1:-14.2}"
 repo="${2:-canonical/cloud-init}"
 ref="${3:-main}"
 debug=$4
 install_media="${install_media:-http}"
-requisite_pkgs="curl"
 
-pkg info --quiet ${requisite_pkgs}
-if [ $? != 0 ]; then
-    echo "Requisite packages are missing, install following packages:" >&2
-    echo "${requisite_pkgs}" | sed -e 's|^|\t|' -e 's| |\n\t|g' >&2
-    exit 1
-fi
-
-set -eux
+set -euxo pipefail
 root_fs="${root_fs:-ufs}"  # ufs or zfs
 
-function build {
+build() {
     VERSION=$1
     BASE_URL="http://ftp.freebsd.org/pub/FreeBSD/releases/amd64/${VERSION}-RELEASE"
-    if ! curl --fail --silent -L $BASE_URL; then
+    if ! fetch -q $BASE_URL; then
         BASE_URL="http://ftp-archive.freebsd.org/pub/FreeBSD-Archive/old-releases/amd64/${VERSION}-RELEASE"
     fi
 
@@ -36,7 +30,6 @@ function build {
     gpart add -t freebsd-boot -s 1024 ${md_dev}
     gpart bootcode -b /boot/pmbr -p ${gptboot} -i 1 ${md_dev}
     gpart add -t efi -s 128M ${md_dev}
-    gpart add -s 1G -l swapfs -t freebsd-swap ${md_dev}
     gpart add -t freebsd-${root_fs} -l rootfs ${md_dev}
     newfs_msdos -F 32 -c 1 /dev/${md_dev}p2
     mount -t msdosfs /dev/${md_dev}p2 /mnt
@@ -44,24 +37,23 @@ function build {
     cp /boot/loader.efi /mnt/EFI/BOOT/BOOTX64.efi
     umount /mnt
 
-
     if [ ${root_fs} = "zfs" ]; then
-        zpool create -o altroot=/mnt zroot ${md_dev}p4
+        zpool create -o altroot=/mnt zroot ${md_dev}p3
         zfs set compress=on  zroot
         zfs create -o mountpoint=none                                  zroot/ROOT
         zfs create -o mountpoint=/ -o canmount=noauto                  zroot/ROOT/default
         mount -t zfs zroot/ROOT/default /mnt
         zpool set bootfs=zroot/ROOT/default zroot
     else
-        newfs -U -L FreeBSD /dev/${md_dev}p4
-        tunefs -p /dev/${md_dev}p4
-        mount /dev/${md_dev}p4 /mnt
+        newfs -U -L FreeBSD /dev/${md_dev}p3
+        tunefs -p /dev/${md_dev}p3
+        mount /dev/${md_dev}p3 /mnt
     fi
 
 
-    curl -L ${BASE_URL}/base.txz | tar vxf - -C /mnt
-    curl -L ${BASE_URL}/kernel.txz | tar vxf - -C /mnt
-    curl -L -o /mnt/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
+    fetch -o - ${BASE_URL}/base.txz | tar vxf - -C /mnt
+    fetch -o - ${BASE_URL}/kernel.txz | tar vxf - -C /mnt
+    fetch -o /mnt/tmp/cloud-init.tar.gz "https://github.com/${repo}/archive/${ref}.tar.gz"
     echo "
 PAGER=""
 freebsd-update --currently-running ${version}-RELEASE fetch --not-running-from-cron
@@ -93,7 +85,6 @@ touch /etc/rc.conf
     if [ ${root_fs} = "ufs" ]; then
         echo '/dev/gpt/rootfs   /       ufs     rw      1       1' >>  /mnt/etc/fstab
     fi
-    echo '/dev/gpt/swapfs  none    swap    sw      0       0' >> /mnt/etc/fstab
 
     echo 'boot_multicons="YES"' >> /mnt/boot/loader.conf
     echo 'boot_serial="YES"' >> /mnt/boot/loader.conf
@@ -125,7 +116,7 @@ touch /etc/rc.conf
         echo 'growpart:
    mode: auto
    devices:
-      - /dev/vtbd0p4
+      - /dev/vtbd0p3
       - /
 ' >> /mnt/etc/cloud/cloud.cfg
     fi
@@ -134,11 +125,9 @@ touch /etc/rc.conf
         ls /mnt
         ls /mnt/sbin
         ls /mnt/sbin/init
-        zfs umount /mnt
-        zfs umount /mnt/zroot
         zpool export zroot
     else
-        umount /dev/${md_dev}p4
+        umount /dev/${md_dev}p3
     fi
     mdconfig -du ${md_dev}
 }
